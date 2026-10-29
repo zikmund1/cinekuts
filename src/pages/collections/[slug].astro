@@ -1,0 +1,89 @@
+---
+import { visibleTitles, visibleLists } from '../../lib/content';
+import Base from '../../layouts/Base.astro';
+import CollectionPick from '../../components/CollectionPick.astro';
+import { getCollection, getEntry, type CollectionEntry } from 'astro:content';
+import { youtubeWatchToEmbed } from '../../lib/youtube';
+
+export async function getStaticPaths() {
+  const lists = await visibleLists();
+  return lists.map((entry) => ({ params: { slug: entry.slug }, props: { entry } }));
+}
+
+interface Props { entry: CollectionEntry<'lists'> }
+const { entry } = Astro.props;
+const { data } = entry;
+const { Content } = await entry.render();
+const embedSrc = data.youtubeUrl ? youtubeWatchToEmbed(data.youtubeUrl) : undefined;
+
+const picks = await Promise.all(data.items.map(async (item, index) => {
+  const rank = index + 1;
+  if (item.kind === 'title') {
+    const title = await getEntry(item.slug);
+    if (!title) {
+      throw new Error(`List "${entry.slug}" references missing title ${JSON.stringify(item.slug)}`);
+    }
+    return {
+      kind: 'title' as const,
+      rank,
+      blurb: item.blurb,
+      slug: title.slug,
+      title: title.data.title,
+      year: title.data.year,
+      type: title.data.type,
+      posterPath: title.data.posterPath,
+      status: title.data.status,
+      kutsScore: title.data.kutsScore,
+    };
+  }
+  return {
+    kind: 'mention' as const,
+    rank,
+    blurb: item.blurb,
+    title: item.title,
+    year: item.year,
+    type: item.type,
+    posterPath: item.posterPath,
+  };
+}));
+---
+import { visibleTitles, visibleLists } from '../../lib/content';
+<Base title={data.title} description={data.tagline ?? data.title}>
+  <article class="collection-page">
+    <p class="review-kicker">
+      <span class="badge">Collection</span>
+    </p>
+    <h1 class="review-title">
+      {data.title}
+      {data.tagline && (
+        <>
+          <br />
+          <span class="echo">{data.tagline}</span>
+        </>
+      )}
+    </h1>
+
+    <div class="review-body collection-intro">
+      <Content />
+    </div>
+
+    <p class="collection-jump"><a class="btn btn-outline" href="#collection-picks">Explore the {picks.length} picks ↓</a></p>
+    {embedSrc && <div class="video-embed">
+      <iframe
+        loading="lazy"
+        src={embedSrc}
+        title={`${data.title} on YouTube`}
+        allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture"
+        allowfullscreen
+      ></iframe>
+    </div>}
+
+    <ol class="collection-picks" id="collection-picks" tabindex="-1">
+      {picks.map((pick) => (
+        <li>
+          <CollectionPick pick={pick} />
+        </li>
+      ))}
+    </ol>
+  </article>
+</Base>

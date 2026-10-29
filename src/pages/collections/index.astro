@@ -1,0 +1,50 @@
+---
+import { visibleTitles, visibleLists } from '../../lib/content';
+import Base from '../../layouts/Base.astro';
+import CollectionCard from '../../components/CollectionCard.astro';
+import { getCollection, getEntry } from 'astro:content';
+
+const lists = (await visibleLists()).sort(
+  (a, b) => b.data.publishDate.getTime() - a.data.publishDate.getTime(),
+);
+
+const cards = await Promise.all(lists.map(async (list) => {
+  const posters: string[] = [];
+  for (const item of list.data.items) {
+    if (posters.length >= 4) break;
+    if (item.kind === 'title') {
+      const title = await getEntry(item.slug);
+      if (title) posters.push(title.data.posterPath);
+    } else {
+      posters.push(item.posterPath);
+    }
+  }
+  return { list, posters };
+}));
+---
+import { visibleTitles, visibleLists } from '../../lib/content';
+<Base title="Collections" description="YouTube list videos, written down — ordered picks, posters, and scores.">
+  <section class="section collection-index">
+    <h1 class="two-tone">
+      Collections<br />
+      <span class="echo">Lists from the channel</span>
+    </h1>
+
+    {cards.length === 0 ? (
+      <p class="card-meta">No collections yet. Each one is the written companion to a YouTube list video.</p>
+    ) : (
+      <div class="collection-cards">
+        {cards.map(({ list, posters }) => (
+          <CollectionCard
+            href={`/collections/${list.slug}`}
+            title={list.data.title}
+            tagline={list.data.tagline}
+            itemCount={list.data.items.length}
+            publishDate={list.data.publishDate}
+            posters={posters}
+          />
+        ))}
+      </div>
+    )}
+  </section>
+</Base>

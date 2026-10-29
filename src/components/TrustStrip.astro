@@ -1,0 +1,34 @@
+---
+// Homepage hero: honest trust claims, Morphic split layout.
+// AI is used in production (voiceover, drafting) but never to decide
+// what's reviewed or what it scores.
+interface Props {
+  latest?: {
+    slug: string;
+    data: { title: string };
+  };
+}
+const { latest } = Astro.props;
+const youtube = "https://www.youtube.com/@cinekutss";
+---
+<section class="hero">
+  <div>
+    {latest && (
+      <a class="announcement" href={`/title/${latest.slug}`}>
+        <span class="pill-new">New</span>
+        {latest.data.title} ›
+      </a>
+    )}
+    <h1>
+      Curated reviews<br />
+      <span class="echo">For film and TV fans</span>
+    </h1>
+  </div>
+  <div class="hero-copy">
+    <p>We watch every title end to end and score it ourselves. If it's here, we sat through it.</p>
+    <div class="hero-actions">
+      <a class="btn btn-primary" href="/reviews">Browse reviews</a>
+      <a class="btn btn-secondary" href={youtube} target="_blank" rel="noreferrer">Watch on YouTube</a>
+    </div>
+  </div>
+</section>

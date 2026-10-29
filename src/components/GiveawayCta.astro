@@ -1,0 +1,142 @@
+---
+// Full-width wrap headline with scroll color, then copy + CTA underneath.
+interface Props {
+  headline: string;
+  echo?: string;
+  accentPhrase?: string;
+  subhead: string;
+  ctaLabel: string;
+  enterUrl: string;
+  note?: string;
+}
+
+const {
+  headline,
+  echo,
+  accentPhrase,
+  subhead,
+  ctaLabel,
+  enterUrl,
+  note = 'Conditions are in the entry link.',
+} = Astro.props;
+
+type Bit = string | { word: string; accent: boolean };
+
+function splitWords(text: string) {
+  return text.split(/(\s+)/);
+}
+
+function wordNodes(text: string, phrase?: string): Bit[] {
+  const parts = splitWords(text);
+  const accentWords = phrase?.split(/\s+/).filter(Boolean) ?? [];
+  const tokens = parts.filter((part) => !/^\s+$/.test(part));
+  let start = -1;
+
+  if (accentWords.length > 0) {
+    for (let i = 0; i <= tokens.length - accentWords.length; i++) {
+      if (accentWords.every((word, j) => tokens[i + j] === word)) {
+        start = i;
+        break;
+      }
+    }
+  }
+
+  let tokenI = 0;
+  return parts.map((part) => {
+    if (/^\s+$/.test(part)) return part;
+    const accent =
+      start >= 0 && tokenI >= start && tokenI < start + accentWords.length;
+    tokenI += 1;
+    return { word: part, accent };
+  });
+}
+
+const headlineBits = wordNodes(headline, accentPhrase);
+const echoBits = echo ? wordNodes(echo) : [];
+---
+<section class="giveaway" id="giveaway" data-scroll-say aria-label="Current giveaway">
+  <p class="hero-kicker"><span class="pill-new">Giveaway</span></p>
+  <h2 data-scroll-say-text>
+      {headlineBits.map((bit) =>
+        typeof bit === 'string' ? (
+          bit
+        ) : (
+          <span
+            class:list={['scroll-say-word', bit.accent && 'is-accent']}
+            data-scroll-word
+          >{bit.word}</span>
+        )
+      )}
+      {echo && (
+        <>
+          <br />
+          {echoBits.map((bit) =>
+            typeof bit === 'string' ? (
+              bit
+            ) : (
+              <span class="scroll-say-word" data-scroll-word>{bit.word}</span>
+            )
+          )}
+        </>
+      )}
+    </h2>
+  <div class="giveaway-copy">
+    <p>{subhead}</p>
+    <div class="hero-actions">
+      <a class="btn btn-primary" href={enterUrl} target="_blank" rel="noreferrer">
+        {ctaLabel}
+      </a>
+    </div>
+    {note && <p class="hero-note">{note}</p>}
+  </div>
+</section>
+
+<script>
+  function setupScrollSay() {
+    const reduced = window.matchMedia('(prefers-reduced-motion: reduce)').matches;
+    document.querySelectorAll<HTMLElement>('[data-scroll-say]').forEach((section) => {
+      const text = section.querySelector<HTMLElement>('[data-scroll-say-text]');
+      const words = [...section.querySelectorAll<HTMLElement>('[data-scroll-word]')];
+      if (!text || words.length === 0) return;
+
+      if (reduced) {
+        words.forEach((word) => word.style.setProperty('--on', '1'));
+        return;
+      }
+
+      const n = words.length;
+      const duration = 0.25;
+      const total = n - 1 + duration;
+
+      const paint = () => {
+        const rect = text.getBoundingClientRect();
+        const vh = window.innerHeight;
+        const start = vh - 60;
+        const end = vh / 2 - rect.height / 2;
+        const range = start - end;
+        const t = range === 0 ? 1 : Math.min(1, Math.max(0, (start - rect.top) / range));
+
+        words.forEach((word, i) => {
+          const local = Math.min(1, Math.max(0, (t * total - i) / duration));
+          word.style.setProperty('--on', local.toFixed(3));
+        });
+      };
+
+      let ticking = false;
+      const onScroll = () => {
+        if (ticking) return;
+        ticking = true;
+        requestAnimationFrame(() => {
+          paint();
+          ticking = false;
+        });
+      };
+
+      paint();
+      window.addEventListener('scroll', onScroll, { passive: true });
+      window.addEventListener('resize', onScroll);
+    });
+  }
+
+  setupScrollSay();
+</script>

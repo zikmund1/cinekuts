@@ -1,0 +1,170 @@
+---
+import { visibleTitles, visibleLists } from '../lib/content';
+import Base from '../layouts/Base.astro';
+import ReviewCard from '../components/ReviewCard.astro';
+import { getCollection } from 'astro:content';
+
+const TMDB_POSTER = 'https://image.tmdb.org/t/p/w500';
+
+const titles = (await visibleTitles()).sort((a, b) => {
+  if (a.data.status === 'published' && b.data.status !== 'published') return -1;
+  if (a.data.status !== 'published' && b.data.status === 'published') return 1;
+  return (b.data.publishDate?.getTime() ?? 0) - (a.data.publishDate?.getTime() ?? 0);
+});
+
+const items = titles.map((t) => ({
+  href: `/title/${t.slug}`,
+  title: t.data.title,
+  poster: `${TMDB_POSTER}${t.data.posterPath}`,
+  meta: `${t.data.type === 'tv' ? 'TV' : 'Movie'} · ${t.data.year}`,
+  score: t.data.status === 'published' && t.data.kutsScore != null
+    ? t.data.kutsScore.toFixed(1)
+    : undefined,
+  type: t.data.type,
+  status: t.data.status,
+  date: String(t.data.publishDate?.getTime() ?? 0),
+}));
+---
+import { visibleTitles, visibleLists } from '../lib/content';
+<Base title="Reviews" description="Every Cinekuts review, with search and filters.">
+  <section class="reviews-page">
+    <h1 class="two-tone">
+      Reviews<br />
+      <span class="echo">Search, filter, and score</span>
+    </h1>
+
+    <form class="reviews-toolbar" data-reviews-filter>
+      <label class="reviews-search">
+        <span class="sr-only">Search titles</span>
+        <input
+          type="search"
+          name="q"
+          placeholder="Search titles"
+          autocomplete="off"
+          data-reviews-q
+        />
+      </label>
+
+      <div class="filter-pills" role="group" aria-label="Type">
+        <button type="button" class="filter-pill is-on" data-filter="type" data-value="all">All</button>
+        <button type="button" class="filter-pill" data-filter="type" data-value="movie">Movies</button>
+        <button type="button" class="filter-pill" data-filter="type" data-value="tv">TV</button>
+      </div>
+
+      <div class="filter-pills" role="group" aria-label="Status">
+        <button type="button" class="filter-pill is-on" data-filter="status" data-value="all">All</button>
+        <button type="button" class="filter-pill" data-filter="status" data-value="published">Scored</button>
+        <button type="button" class="filter-pill" data-filter="status" data-value="coming-soon">Coming soon</button>
+      </div>
+
+      <label class="reviews-sort">
+        <span class="sr-only">Sort</span>
+        <select name="sort" data-reviews-sort>
+          <option value="newest">Newest</option>
+          <option value="score">Highest score</option>
+          <option value="title">Title A–Z</option>
+        </select>
+      </label>
+    </form>
+
+    <p class="reviews-count" data-reviews-count></p>
+
+    <div class="catalog" data-reviews-grid>
+      {items.map((item) => (
+        <ReviewCard {...item} />
+      ))}
+    </div>
+    <p class="reviews-empty" hidden data-reviews-empty>No titles match those filters.</p>
+  </section>
+</Base>
+
+<script>
+  import {
+    compareReviews,
+    parseReviewFilter,
+    reviewMatches,
+    type ReviewFilter,
+    type ReviewIndexItem,
+  } from '../lib/reviews';
+
+  const form = document.querySelector<HTMLFormElement>('[data-reviews-filter]');
+  const grid = document.querySelector<HTMLElement>('[data-reviews-grid]');
+  const count = document.querySelector<HTMLElement>('[data-reviews-count]');
+  const empty = document.querySelector<HTMLElement>('[data-reviews-empty]');
+  const search = document.querySelector<HTMLInputElement>('[data-reviews-q]');
+  const sort = document.querySelector<HTMLSelectElement>('[data-reviews-sort]');
+
+  if (form && grid && count && empty && search && sort) {
+    const cards = [...grid.querySelectorAll<HTMLElement>('[data-review-card]')];
+
+    const readFilter = (): ReviewFilter => {
+      const typeBtn = form.querySelector<HTMLElement>('[data-filter="type"].is-on');
+      const statusBtn = form.querySelector<HTMLElement>('[data-filter="status"].is-on');
+      return {
+        q: search.value,
+        type: (typeBtn?.dataset.value as ReviewFilter['type']) ?? 'all',
+        status: (statusBtn?.dataset.value as ReviewFilter['status']) ?? 'all',
+        sort: (sort.value as ReviewFilter['sort']) || 'newest',
+      };
+    };
+
+    const itemFromCard = (card: HTMLElement): ReviewIndexItem => ({
+      title: card.dataset.title ?? '',
+      type: (card.dataset.type as ReviewIndexItem['type']) ?? 'movie',
+      status: (card.dataset.status as ReviewIndexItem['status']) ?? 'published',
+      score: card.dataset.score ? Number(card.dataset.score) : null,
+      date: Number(card.dataset.date ?? 0),
+    });
+
+    const apply = (writeUrl = true) => {
+      const filter = readFilter();
+      const visible = cards.filter((card) => reviewMatches(itemFromCard(card), filter));
+      visible.sort((a, b) => compareReviews(itemFromCard(a), itemFromCard(b), filter.sort));
+      visible.forEach((card) => grid.append(card));
+
+      cards.forEach((card) => {
+        card.hidden = !visible.includes(card);
+      });
+
+      empty.hidden = visible.length > 0;
+      count.textContent = visible.length === 1
+        ? '1 title'
+        : `${visible.length} titles`;
+
+      if (writeUrl) {
+        const params = new URLSearchParams();
+        if (filter.q) params.set('q', filter.q);
+        if (filter.type !== 'all') params.set('type', filter.type);
+        if (filter.status !== 'all') params.set('status', filter.status);
+        if (filter.sort !== 'newest') params.set('sort', filter.sort);
+        const next = params.toString();
+        history.replaceState(null, '', next ? `?${next}` : location.pathname);
+      }
+    };
+
+    const setPill = (group: string, value: string) => {
+      form.querySelectorAll(`[data-filter="${group}"]`).forEach((btn) => {
+        btn.classList.toggle('is-on', btn instanceof HTMLElement && btn.dataset.value === value);
+      });
+    };
+
+    const initial = parseReviewFilter(new URLSearchParams(location.search));
+    search.value = initial.q;
+    sort.value = initial.sort;
+    setPill('type', initial.type);
+    setPill('status', initial.status);
+
+    form.addEventListener('click', (event) => {
+      const btn = (event.target as HTMLElement).closest<HTMLElement>('[data-filter]');
+      if (!btn) return;
+      event.preventDefault();
+      setPill(btn.dataset.filter ?? '', btn.dataset.value ?? 'all');
+      apply();
+    });
+
+    search.addEventListener('input', () => apply());
+    sort.addEventListener('change', () => apply());
+    form.addEventListener('submit', (event) => event.preventDefault());
+    apply(false);
+  }
+</script>

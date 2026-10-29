@@ -1,0 +1,74 @@
+---
+import '@fontsource-variable/inter';
+import { getCollection } from 'astro:content';
+import { giveawayActive } from '../lib/publication';
+import { includeSamples } from '../lib/content';
+const hasGiveaway = (await getCollection('giveaways')).some(g => !g.data.sample && giveawayActive(g.data));
+
+interface Props {
+  title: string;
+  description?: string;
+  robots?: string;
+  bare?: boolean;
+}
+const {
+  title,
+  description = "CINEKUTS — original movie & TV reviews.",
+  robots,
+  bare = false,
+} = Astro.props;
+const youtube = "https://www.youtube.com/@cinekutss";
+---
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover" />
+    <meta name="description" content={description} />
+    {(robots || includeSamples) && <meta name="robots" content={robots ?? "noindex, nofollow"} />}
+    <link rel="canonical" href={new URL(Astro.url.pathname, Astro.site)} />
+    <meta property="og:title" content={`${title} · CINEKUTS`} />
+    <meta property="og:description" content={description} />
+    <title>{title} · CINEKUTS</title>
+    <link rel="stylesheet" href="/styles/global.css" />
+  </head>
+  <body class={bare ? "is-status" : undefined}>
+    <a class="skip-link" href="#main-content">Skip to content</a>
+    {!bare && (
+      <header class="site-header wrap">
+        <nav class="nav-left">
+          <a href="/reviews">Reviews</a>
+          <a href="/collections">Collections</a>
+          {hasGiveaway && <a href="/#giveaway">Giveaway</a>}
+        </nav>
+        <a href="/" class="logo">
+          <img src="/images/CK-2026-logo-white.svg" alt="CINEKUTS" class="logo-mark" />
+        </a>
+        <div class="nav-right">
+          <a class="btn btn-outline" href={youtube} target="_blank" rel="noreferrer">YouTube</a>
+        </div>
+      </header>
+    )}
+    <main class="wrap" id="main-content" tabindex="-1">
+      {!bare && includeSamples && <p class="preview-notice">Design preview · Sample reviews and scores</p>}
+      <slot />
+    </main>
+    {!bare && (
+      <>
+        <div class="footer-mark">
+          <img src="/images/CK-2026-logo-white.svg" alt="" class="footer-mark-logo" />
+        </div>
+        <footer class="site-footer">
+          <div class="wrap foot">
+            <span>
+              Posters and stills from
+              <a href="https://www.themoviedb.org/" target="_blank" rel="noreferrer">TMDB</a>.
+              This product uses the TMDB API but is not endorsed or certified by TMDB.
+            </span>
+            <span>© CINEKUTS</span>
+          </div>
+        </footer>
+      </>
+    )}
+  </body>
+</html>

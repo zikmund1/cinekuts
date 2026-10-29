@@ -1,0 +1,36 @@
+---
+interface Item {
+  href: string;
+  title: string;
+  poster: string;
+}
+
+interface Props {
+  items: Item[];
+}
+
+const { items } = Astro.props;
+const tilts = ['3deg', '-3deg', '3deg', '-3deg', '2deg'];
+---
+<section class="loved" id="loved" aria-label="Top 5 we just loved">
+  <div class="loved-head">
+    <div>
+      <p class="loved-kicker"><span class="pill-new">Top 5</span></p>
+      <h2 class="two-tone">
+        We just loved<br />
+        <span class="echo">The ones that hit hardest</span>
+      </h2>
+    </div>
+  </div>
+  <div class="loved-fan" style={`--n: ${items.length}`}>
+    {items.map((item, i) => (
+      <a
+        class="loved-card"
+        href={item.href}
+        style={`--r: ${tilts[i] ?? '0deg'}`}
+      >
+        <img src={item.poster} alt={item.title} loading="lazy" />
+      </a>
+    ))}
+  </div>
+</section>

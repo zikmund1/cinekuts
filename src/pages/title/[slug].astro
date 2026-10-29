@@ -1,0 +1,111 @@
+---
+import { visibleTitles, visibleLists } from '../../lib/content';
+import Base from '../../layouts/Base.astro';
+import KutsScore from '../../components/KutsScore.astro';
+import { getCollection, type CollectionEntry } from 'astro:content';
+
+export async function getStaticPaths() {
+  const titles = await visibleTitles();
+  return titles.map((t) => ({ params: { slug: t.slug }, props: { entry: t } }));
+}
+
+interface Props { entry: CollectionEntry<'titles'> }
+const { entry } = Astro.props;
+const { data } = entry;
+const { Content } = await entry.render();
+
+const TMDB_IMG = 'https://image.tmdb.org/t/p/w1280';
+const still = data.backdropPath || data.posterPath;
+const stillSrc = still ? `${TMDB_IMG}${still}` : undefined;
+const kind = data.type === 'tv' ? 'TV' : 'Movie';
+const youtubeUrl = data.youtubeUrl;
+---
+import { visibleTitles, visibleLists } from '../../lib/content';
+<Base title={data.title} description={data.synopsis}>
+  {data.status === 'published' ? (
+    <article>
+      <header class="review-head">
+        <p class="review-kicker">
+          <span class="badge">{data.reviewFormat?.replace('-', ' vs ') ?? 'Review'}</span>
+        </p>
+        <h1 class="review-title">
+          {data.title}<br />
+          <span class="echo">{kind} · {data.year}</span>
+        </h1>
+      </header>
+      {(data.reviewer || data.reviewScope) && <p class="review-byline">{data.reviewer && `By ${data.reviewer}`}{data.reviewer && data.reviewScope && ' · '}{data.reviewScope}</p>}
+      {(data.verdict || data.intendedAudience || data.mainReservation) && <dl class="review-verdict">
+        {data.verdict && <div><dt>Our verdict</dt><dd>{data.verdict}</dd></div>}
+        {data.intendedAudience && <div><dt>For you if</dt><dd>{data.intendedAudience}</dd></div>}
+        {data.mainReservation && <div><dt>Our reservation</dt><dd>{data.mainReservation}</dd></div>}
+      </dl>}
+      <div class="review-hero">
+        {stillSrc && (
+          <div class="still review-still">
+            <img src={stillSrc} alt="" />
+          </div>
+        )}
+        <div class="review-hero-copy">
+          <KutsScore score={data.kutsScore} breakdown={data.kutsScoreBreakdown} />
+          {data.moodTags.length > 0 && (
+            <div class="mood-tags">
+              {data.moodTags.map((tag) => <span class="mood-tag">{tag}</span>)}
+            </div>
+          )}
+          {youtubeUrl && (
+            <p class="review-watch">
+              <a class="btn btn-primary" href={youtubeUrl} target="_blank" rel="noreferrer">
+                Watch on YouTube
+              </a>
+            </p>
+          )}
+        </div>
+      </div>
+
+      {data.shortEmbedUrl && (
+        <div class="short-embed">
+          <iframe
+            width="360"
+            height="640"
+            src={data.shortEmbedUrl}
+            title={`${data.title} review Short`}
+            allowfullscreen
+          ></iframe>
+        </div>
+      )}
+
+      <div class="review-body">
+        <Content />
+      </div>
+    </article>
+  ) : (
+    <article>
+      <header class="review-head">
+        <p class="review-kicker">
+          <span class="badge">Review coming soon</span>
+        </p>
+        <h1 class="review-title">
+          {data.title}<br />
+          <span class="echo">{kind} · {data.year}</span>
+        </h1>
+      </header>
+      {(data.reviewer || data.reviewScope) && <p class="review-byline">{data.reviewer && `By ${data.reviewer}`}{data.reviewer && data.reviewScope && ' · '}{data.reviewScope}</p>}
+      {(data.verdict || data.intendedAudience || data.mainReservation) && <dl class="review-verdict">
+        {data.verdict && <div><dt>Our verdict</dt><dd>{data.verdict}</dd></div>}
+        {data.intendedAudience && <div><dt>For you if</dt><dd>{data.intendedAudience}</dd></div>}
+        {data.mainReservation && <div><dt>Our reservation</dt><dd>{data.mainReservation}</dd></div>}
+      </dl>}
+      <div class="review-hero">
+        {stillSrc && (
+          <div class="still review-still">
+            <img src={stillSrc} alt="" />
+          </div>
+        )}
+        <div class="review-hero-copy">
+          <p class="review-lede">{data.synopsis}</p>
+          <p class="card-meta">{data.genres.join(' · ')}</p>
+        </div>
+      </div>
+    </article>
+  )}
+</Base>

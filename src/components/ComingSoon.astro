@@ -1,0 +1,21 @@
+---
+import StatusPage from './StatusPage.astro';
+
+const socials = [
+  { label: "YouTube", href: "https://www.youtube.com/@cinekutss" },
+  { label: "Instagram", href: "https://www.instagram.com/cinekuts/" },
+  { label: "TikTok", href: "https://www.tiktok.com/@cinekuts" },
+];
+---
+<StatusPage heading="We’re still cutting this one.">
+  {socials.map((social, i) => (
+    <a
+      class:list={["btn", i === 0 ? "btn-primary" : "btn-secondary"]}
+      href={social.href}
+      target="_blank"
+      rel="noreferrer"
+    >
+      {social.label}
+    </a>
+  ))}
+</StatusPage>

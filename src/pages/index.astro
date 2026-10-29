@@ -1,0 +1,127 @@
+---
+import { visibleTitles, visibleLists } from '../lib/content';
+import CollectionCard from '../components/CollectionCard.astro';
+import { listPosters } from '../lib/content';
+import { giveawayActive } from '../lib/publication';
+import Base from '../layouts/Base.astro';
+import ComingSoon from '../components/ComingSoon.astro';
+import TrustStrip from '../components/TrustStrip.astro';
+import MediaWall from '../components/MediaWall.astro';
+import GiveawayCta from '../components/GiveawayCta.astro';
+import ReviewRail from '../components/ReviewRail.astro';
+import LovedFan from '../components/LovedFan.astro';
+import { getCollection } from 'astro:content';
+import { isComingSoon } from '../lib/siteMode';
+
+const comingSoon = isComingSoon();
+const featured = comingSoon ? undefined : (await visibleLists()).sort((a,b) => b.data.publishDate.getTime() - a.data.publishDate.getTime())[0];
+const featuredPosters = featured ? await listPosters(featured) : [];
+
+const comingSoonTitle = "Under construction";
+const comingSoonDescription = "We’re still cutting this one. Follow along on YouTube, Instagram, and TikTok.";
+
+let latest: { slug: string; data: { title: string } } | undefined;
+let wallTiles: { href: string; title: string; image: string; score?: string }[] = [];
+let railItems: { href: string; title: string; poster: string; meta: string; score?: string }[] = [];
+let liveGiveaway:
+  | {
+      data: {
+        headline: string;
+        echo?: string;
+        accentPhrase?: string;
+        subhead: string;
+        ctaLabel: string;
+        enterUrl: string;
+        note?: string;
+      };
+    }
+  | undefined;
+let lovedItems: { href: string; title: string; poster: string }[] = [];
+
+if (!comingSoon) {
+  const titles = await visibleTitles();
+  const sorted = titles.sort((a, b) => {
+    // Published reviews first (newest first). "coming-soon" entries should be
+    // rare (explicit commitments only, not a general backlog) so they sort last.
+    if (a.data.status === 'published' && b.data.status !== 'published') return -1;
+    if (a.data.status !== 'published' && b.data.status === 'published') return 1;
+    return (b.data.publishDate?.getTime() ?? 0) - (a.data.publishDate?.getTime() ?? 0);
+  });
+
+  latest = sorted.find((t) => t.data.status === 'published');
+
+  const TMDB_STILL = 'https://image.tmdb.org/t/p/w1280';
+  const TMDB_POSTER = 'https://image.tmdb.org/t/p/w500';
+
+  wallTiles = sorted.map((t) => ({
+    href: `/title/${t.slug}`,
+    title: t.data.title,
+    image: `${TMDB_STILL}${t.data.backdropPath || t.data.posterPath}`,
+    score: t.data.status === 'published' && t.data.kutsScore != null
+      ? t.data.kutsScore.toFixed(1)
+      : undefined,
+  }));
+
+  liveGiveaway = (await getCollection('giveaways'))
+    .filter((g) => !g.data.sample && giveawayActive(g.data))
+    .sort((a, b) => (b.data.endsAt?.getTime() ?? 0) - (a.data.endsAt?.getTime() ?? 0))[0];
+
+  railItems = sorted.map((t) => ({
+    href: `/title/${t.slug}`,
+    title: t.data.title,
+    poster: `${TMDB_POSTER}${t.data.posterPath}`,
+    meta: `${t.data.type === 'tv' ? 'TV' : 'Movie'} · ${t.data.year}`,
+    score: t.data.status === 'published' && t.data.kutsScore != null
+      ? t.data.kutsScore.toFixed(1)
+      : undefined,
+  }));
+
+  lovedItems = titles
+    .filter((t) => t.data.status === 'published' && t.data.kutsScore != null)
+    .sort((a, b) => (b.data.kutsScore ?? 0) - (a.data.kutsScore ?? 0))
+    .slice(0, 5)
+    .map((t) => ({
+      href: `/title/${t.slug}`,
+      title: t.data.title,
+      poster: `${TMDB_POSTER}${t.data.posterPath}`,
+    }));
+}
+
+---
+import { visibleTitles, visibleLists } from '../lib/content';
+{comingSoon ? (
+  <Base title={comingSoonTitle} description={comingSoonDescription} bare>
+    <ComingSoon />
+  </Base>
+) : (
+  <Base title="Reviews">
+    <TrustStrip latest={latest} />
+
+    <MediaWall tiles={wallTiles} />
+
+    <p class="quote">“Every score is a real opinion. No algorithms decide what’s good.”</p>
+
+    {featured && <section class="section featured-collection" aria-labelledby="featured-heading">
+      <div class="section-bar"><h2 id="featured-heading">Collections<br /><span class="echo">Go deeper into the films</span></h2><a class="btn btn-outline" href="/collections">All collections</a></div>
+      <CollectionCard href={`/collections/${featured.slug}`} title={featured.data.title} tagline={featured.data.tagline} itemCount={featured.data.items.length} publishDate={featured.data.publishDate} posters={featuredPosters} />
+    </section>}
+    {railItems.length > 0 && <ReviewRail items={railItems} />}
+    {!latest && !featured && <section class="section"><h2>First reviews coming soon</h2><p class="card-meta">Find CINEKUTS on YouTube while we prepare our first reviews and collections.</p></section>}
+
+    {liveGiveaway && (
+      <GiveawayCta
+        headline={liveGiveaway.data.headline}
+        echo={liveGiveaway.data.echo}
+        accentPhrase={liveGiveaway.data.accentPhrase}
+        subhead={liveGiveaway.data.subhead}
+        ctaLabel={liveGiveaway.data.ctaLabel}
+        enterUrl={liveGiveaway.data.enterUrl}
+        note={liveGiveaway.data.note}
+      />
+    )}
+
+    {lovedItems.length > 0 && <LovedFan items={lovedItems} />}
+
+
+  </Base>
+)}

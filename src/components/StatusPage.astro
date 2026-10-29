@@ -1,0 +1,13 @@
+---
+interface Props {
+  heading: string;
+}
+
+const { heading } = Astro.props;
+---
+<section class="status-page">
+  <h1>{heading}</h1>
+  <div class="status-actions">
+    <slot />
+  </div>
+</section>
