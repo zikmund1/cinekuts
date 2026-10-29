@@ -1,0 +1,37 @@
+---
+interface Props {
+  href: string;
+  title: string;
+  poster: string;
+  meta: string;
+  score?: string;
+  class?: string;
+  type?: string;
+  status?: string;
+  date?: string;
+}
+
+const { href, title, poster, meta, score, type, status, date } = Astro.props;
+const extraClass = Astro.props.class;
+---
+<a
+  class:list={['card', extraClass]}
+  href={href}
+  data-review-card
+  data-title={title}
+  data-type={type}
+  data-status={status}
+  data-score={score ?? ''}
+  data-date={date ?? '0'}
+>
+  <img src={poster} alt="" loading="lazy" />
+  <div class="card-body">
+    <h3 class="card-title">{title}</h3>
+    <p class="card-meta">{meta}</p>
+    {score ? (
+      <span class="score">{score}</span>
+    ) : (
+      <span class="badge">Coming soon</span>
+    )}
+  </div>
+</a>

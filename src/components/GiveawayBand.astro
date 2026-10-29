@@ -1,0 +1,45 @@
+---
+// Parked Morphic enterprise testimonial layout (550px inset looping video
+// + edge fade). Homepage currently uses GiveawayCta.astro instead.
+interface Props {
+  headline: string;
+  ctaLabel: string;
+  enterUrl: string;
+  videoUrl?: string;
+}
+
+const { headline, ctaLabel, enterUrl, videoUrl } = Astro.props;
+let lines = headline.split(/\n+/).map((line) => line.trim()).filter(Boolean);
+if (lines.length === 1) {
+  const cut = lines[0].indexOf('!');
+  if (cut !== -1) {
+    const rest = lines[0].slice(cut + 1).trim();
+    if (rest) lines = [lines[0].slice(0, cut + 1), rest];
+  }
+}
+---
+<div class="giveaway-band">
+  <section class="giveaway-frame" aria-label="Current giveaway">
+    <div class="giveaway-band-copy">
+      <p class="giveaway-band-quote">
+        {lines.map((line, i) => (
+          <>
+            {i > 0 && <br />}
+            {line}
+          </>
+        ))}
+      </p>
+      <a class="btn btn-primary" href={enterUrl} target="_blank" rel="noreferrer">
+        {ctaLabel}
+      </a>
+    </div>
+    <div class="giveaway-band-veil" aria-hidden="true"></div>
+    {videoUrl && (
+      <div class="giveaway-band-video">
+        <video autoplay loop muted playsinline preload="auto">
+          <source src={videoUrl} type="video/mp4" />
+        </video>
+      </div>
+    )}
+  </section>
+</div>

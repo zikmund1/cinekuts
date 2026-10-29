@@ -1,0 +1,29 @@
+---
+import Base from '../layouts/Base.astro';
+import ComingSoon from '../components/ComingSoon.astro';
+import StatusPage from '../components/StatusPage.astro';
+import { isComingSoon } from '../lib/siteMode';
+
+const comingSoon = isComingSoon();
+---
+{comingSoon ? (
+  <Base
+    title="Under construction"
+    description="We’re still cutting this one. Follow along on YouTube, Instagram, and TikTok."
+    robots="noindex"
+    bare
+  >
+    <ComingSoon />
+  </Base>
+) : (
+  <Base
+    title="Page not found"
+    description="The page you’re looking for can’t be found."
+    robots="noindex"
+    bare
+  >
+    <StatusPage heading="The page you’re looking for can’t be found.">
+      <a class="btn btn-primary" href="/">Go back to home</a>
+    </StatusPage>
+  </Base>
+)}

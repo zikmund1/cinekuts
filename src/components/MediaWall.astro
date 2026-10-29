@@ -1,0 +1,70 @@
+---
+interface Tile {
+  href: string;
+  title: string;
+  image: string;
+  score?: string;
+  video?: string;
+}
+
+interface Props {
+  tiles: Tile[];
+}
+
+const { tiles } = Astro.props;
+
+function fill(source: Tile[], min: number) {
+  const row: Tile[] = [];
+  if (source.length === 0) return row;
+  while (row.length < min) row.push(...source);
+  return row.slice(0, min);
+}
+
+const perRow = Math.max(10, tiles.length);
+const rows = [
+  { className: "media-wall-row media-wall-row-a", items: fill(tiles, perRow) },
+  { className: "media-wall-row media-wall-row-b", items: fill([...tiles].reverse(), perRow) },
+];
+---
+
+{tiles.length > 0 && (
+  <section class="media-wall" aria-label="Titles on Cinekuts">
+    <div class="media-wall-track">
+      {rows.map((row) => (
+        <div class={row.className}>
+          {[...row.items, ...row.items].map((tile, i) => (
+            <a class="screen" href={tile.href}>
+              {tile.video ? (
+                <video
+                  class="screen-media"
+                  poster={tile.image}
+                  src={tile.video}
+                  muted
+                  loop
+                  autoplay
+                  playsinline
+                  preload="metadata"
+                />
+              ) : (
+                <img
+                  class="screen-media"
+                  src={tile.image}
+                  alt=""
+                  loading={i < 6 ? "eager" : "lazy"}
+                />
+              )}
+              <span class="screen-caption">
+                <span class="screen-caption-title">{tile.title}</span>
+                {tile.score ? (
+                  <span class="screen-caption-score">{tile.score}</span>
+                ) : (
+                  <span class="screen-caption-soon">Coming soon</span>
+                )}
+              </span>
+            </a>
+          ))}
+        </div>
+      ))}
+    </div>
+  </section>
+)}

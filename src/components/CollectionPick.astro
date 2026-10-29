@@ -1,0 +1,67 @@
+---
+import { TMDB_POSTER } from '../lib/lists';
+
+interface TitlePick {
+  kind: 'title';
+  rank: number;
+  blurb: string;
+  slug: string;
+  title: string;
+  year: number;
+  type: 'movie' | 'tv';
+  posterPath: string;
+  status: 'published' | 'coming-soon';
+  kutsScore?: number;
+}
+
+interface MentionPick {
+  kind: 'mention';
+  rank: number;
+  blurb: string;
+  title: string;
+  year: number;
+  type: 'movie' | 'tv';
+  posterPath: string;
+}
+
+interface Props {
+  pick: TitlePick | MentionPick;
+}
+
+const { pick } = Astro.props;
+const kindLabel = pick.type === 'tv' ? 'TV' : 'Movie';
+const href = pick.kind === 'title' ? `/title/${pick.slug}` : undefined;
+---
+<article class="collection-pick">
+  <span class="collection-pick-rank">{pick.rank}</span>
+  {href ? (
+    <a class="collection-pick-poster" href={href}>
+      <img src={`${TMDB_POSTER}${pick.posterPath}`} alt="" />
+    </a>
+  ) : (
+    <div class="collection-pick-poster">
+      <img src={`${TMDB_POSTER}${pick.posterPath}`} alt="" />
+    </div>
+  )}
+  <div class="collection-pick-copy">
+    <p class="collection-pick-kicker">
+      {pick.kind === 'title' ? (
+        pick.status === 'published' ? (
+          <span class="badge">Review</span>
+        ) : (
+          <span class="badge">Coming soon</span>
+        )
+      ) : (
+        <span class="badge">Mention</span>
+      )}
+    </p>
+    <h2 class="collection-pick-title">
+      {href ? <a href={href}>{pick.title}</a> : pick.title}
+      <span class="echo"> {kindLabel} · {pick.year}</span>
+    </h2>
+    {pick.kind === 'title' && pick.status === 'published' && pick.kutsScore != null && (
+      <p class="score">{pick.kutsScore.toFixed(1)}</p>
+    )}
+    <p class="collection-pick-blurb">{pick.blurb}</p>
+  </div>
+</article>

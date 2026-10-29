@@ -1,0 +1,43 @@
+---
+import {
+  KUTS_CATEGORIES,
+  averageKutsScore,
+  formatKutsScore,
+  type KutsBreakdown,
+} from '../lib/kutsScore';
+
+interface Props {
+  score?: number;
+  breakdown?: KutsBreakdown;
+}
+
+const { score, breakdown } = Astro.props;
+const total = breakdown ? averageKutsScore(breakdown) : score;
+---
+{total != null && (
+  <section class="kuts-score" aria-label="Kuts Score">
+    <p class="kuts-score-kicker">Kuts Score</p>
+    <p class="score-lg">{formatKutsScore(total)}/10</p>
+    {breakdown && (
+      <>
+        <p class="kuts-score-caption">Average of five categories, each scored 1–10.</p>
+        <ul class="kuts-breakdown">
+          {KUTS_CATEGORIES.map((category) => {
+            const value = breakdown[category.key];
+            return (
+              <li class="kuts-row">
+                <div class="kuts-row-meta">
+                  <span>{category.label}</span>
+                  <span class="kuts-row-value">{value}</span>
+                </div>
+                <div class="kuts-bar" aria-hidden="true">
+                  <span class="kuts-bar-fill" style={`width: ${value * 10}%`}></span>
+                </div>
+              </li>
+            );
+          })}
+        </ul>
+      </>
+    )}
+  </section>
+)}
