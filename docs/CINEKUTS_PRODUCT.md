@@ -48,6 +48,7 @@ Konverzace je v MVP anonymní a krátkodobá. Historie se uchovává pouze v roz
 
 - responzivní minimalistický dark-mode design;
 - AI chat jako dominantní prvek nad přehybem;
+- kompaktní hlavička s ikonou značky a celoobrazovkovým, klávesnicí ovladatelným menu;
 - jasný slogan a krátké vysvětlení hodnoty;
 - návrhy startovacích dotazů;
 - pod chatem omezený výběr aktuálního redakčního obsahu a tematických kolekcí;
@@ -66,6 +67,10 @@ Konverzace je v MVP anonymní a krátkodobá. Historie se uchovává pouze v roz
 - limity podle anonymní relace/IP v souladu se soukromím, globální rozpočtový strop a ochrana proti zneužití;
 - srozumitelné stavy načítání, vyčerpání limitu, nedostupnosti modelu a prázdných výsledků;
 - degradace bez AI: nabídnout relevantní kolekce nebo filtrované tituly.
+
+Lokální návrhový prototyp může simulovat odeslání, načítání a tři karty deterministicky nad již načteným katalogem. Musí být viditelně označený jako prototyp, nesmí volat externí AI ani se vydávat za produkční doporučovací logiku.
+
+Prototyp označuje ukázkový režim už před odesláním a netvrdí shodu s dotazem ani ověřenou rodinnou vhodnost. Ukazuje nejvýše tři příklady v pořadí katalogu; další sada je dostupná pouze při více než třech titulech. Při prázdném katalogu zobrazí stav „Coming soon“, neaktivní vstup a odkaz na veřejný YouTube. Konverzační historie a skutečné filtrování zůstávají další implementační etapou. Text vstupu má nejméně 16 px, vysvětlení 14 px a aktivní filtry oznamují stav přes `aria-pressed`.
 
 ### 4.3 Filmové karty
 

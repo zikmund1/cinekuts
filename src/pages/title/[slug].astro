@@ -20,7 +20,6 @@ const stillSrc = still ? `${TMDB_IMG}${still}` : undefined;
 const kind = data.type === 'tv' ? 'TV' : 'Movie';
 const youtubeUrl = data.youtubeUrl;
 ---
-import { visibleTitles, visibleLists } from '../../lib/content';
 <Base title={data.title} description={data.synopsis}>
   {data.status === 'published' ? (
     <article>

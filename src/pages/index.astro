@@ -5,7 +5,7 @@ import { listPosters } from '../lib/content';
 import { giveawayActive } from '../lib/publication';
 import Base from '../layouts/Base.astro';
 import ComingSoon from '../components/ComingSoon.astro';
-import TrustStrip from '../components/TrustStrip.astro';
+import RecommendationHero from '../components/RecommendationHero.astro';
 import MediaWall from '../components/MediaWall.astro';
 import GiveawayCta from '../components/GiveawayCta.astro';
 import ReviewRail from '../components/ReviewRail.astro';
@@ -21,7 +21,7 @@ const comingSoonTitle = "Under construction";
 const comingSoonDescription = "We’re still cutting this one. Follow along on YouTube, Instagram, and TikTok.";
 
 let latest: { slug: string; data: { title: string } } | undefined;
-let wallTiles: { href: string; title: string; image: string; score?: string }[] = [];
+let wallTiles: { title: string; image: string }[] = [];
 let railItems: { href: string; title: string; poster: string; meta: string; score?: string }[] = [];
 let liveGiveaway:
   | {
@@ -53,13 +53,9 @@ if (!comingSoon) {
   const TMDB_STILL = 'https://image.tmdb.org/t/p/w1280';
   const TMDB_POSTER = 'https://image.tmdb.org/t/p/w500';
 
-  wallTiles = sorted.map((t) => ({
-    href: `/title/${t.slug}`,
+  wallTiles = sorted.slice(0, 12).map((t) => ({
     title: t.data.title,
     image: `${TMDB_STILL}${t.data.backdropPath || t.data.posterPath}`,
-    score: t.data.status === 'published' && t.data.kutsScore != null
-      ? t.data.kutsScore.toFixed(1)
-      : undefined,
   }));
 
   liveGiveaway = (await getCollection('giveaways'))
@@ -88,16 +84,16 @@ if (!comingSoon) {
 }
 
 ---
-import { visibleTitles, visibleLists } from '../lib/content';
 {comingSoon ? (
   <Base title={comingSoonTitle} description={comingSoonDescription} bare>
     <ComingSoon />
   </Base>
 ) : (
-  <Base title="Reviews">
-    <TrustStrip latest={latest} />
-
-    <MediaWall tiles={wallTiles} />
+  <Base title="Find your next watch" description="Find your next movie or series with CINEKUTS. Explore original reviews, editorial scores and film collections.">
+    <div class="discovery-stage">
+      <RecommendationHero latest={latest} recommendations={railItems.slice(0, 9)} />
+      <MediaWall tiles={wallTiles} />
+    </div>
 
     <p class="quote">“Every score is a real opinion. No algorithms decide what’s good.”</p>
 

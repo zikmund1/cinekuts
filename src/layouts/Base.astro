@@ -18,6 +18,7 @@ const {
   bare = false,
 } = Astro.props;
 const youtube = "https://www.youtube.com/@cinekutss";
+const pathname = Astro.url.pathname;
 ---
 <!doctype html>
 <html lang="en">
@@ -35,22 +36,56 @@ const youtube = "https://www.youtube.com/@cinekutss";
   <body class={bare ? "is-status" : undefined}>
     <a class="skip-link" href="#main-content">Skip to content</a>
     {!bare && (
-      <header class="site-header wrap">
-        <nav class="nav-left">
-          <a href="/reviews">Reviews</a>
-          <a href="/collections">Collections</a>
-          {hasGiveaway && <a href="/#giveaway">Giveaway</a>}
-        </nav>
-        <a href="/" class="logo">
-          <img src="/images/CK-2026-logo-white.svg" alt="CINEKUTS" class="logo-mark" />
-        </a>
-        <div class="nav-right">
-          <a class="btn btn-outline" href={youtube} target="_blank" rel="noreferrer">YouTube</a>
-        </div>
-      </header>
+      <>
+        <header class="site-header wrap">
+          <a href="/" class="site-brand-icon" aria-label="CINEKUTS home">
+            <img src="/images/cinekuts-c-icon.png" alt="" />
+          </a>
+          <button
+            class="menu-toggle"
+            type="button"
+            aria-label="Open menu"
+            aria-haspopup="dialog"
+            aria-controls="site-menu"
+            aria-expanded="false"
+            data-menu-open
+          >
+            <span aria-hidden="true"></span>
+            <span aria-hidden="true"></span>
+            <span aria-hidden="true"></span>
+          </button>
+          <noscript>
+            <nav class="nav-fallback" aria-label="Main navigation">
+              <a href="/reviews">Reviews</a>
+              <a href="/collections">Collections</a>
+            </nav>
+          </noscript>
+        </header>
+
+        <dialog class="site-menu" id="site-menu" aria-labelledby="site-menu-title" data-site-menu>
+          <div class="site-menu-chrome wrap">
+            <a href="/" class="site-brand-icon" aria-label="CINEKUTS home">
+              <img src="/images/cinekuts-c-icon.png" alt="" />
+            </a>
+            <button class="menu-close" type="button" aria-label="Close menu" data-menu-close>
+              <span aria-hidden="true"></span>
+              <span aria-hidden="true"></span>
+            </button>
+          </div>
+          <div class="site-menu-content">
+            <h2 class="sr-only" id="site-menu-title">Main menu</h2>
+            <nav class="site-menu-nav" aria-label="Main navigation">
+              <a href="/" aria-current={pathname === "/" ? "page" : undefined}>Home</a>
+              <a href="/reviews" aria-current={pathname === "/reviews" ? "page" : undefined}>Reviews</a>
+              <a href="/collections" aria-current={pathname.startsWith("/collections") ? "page" : undefined}>Collections</a>
+              {hasGiveaway && <a href="/#giveaway">Giveaway</a>}
+              <a href={youtube} target="_blank" rel="noreferrer">YouTube <span aria-hidden="true">↗</span></a>
+            </nav>
+          </div>
+        </dialog>
+      </>
     )}
     <main class="wrap" id="main-content" tabindex="-1">
-      {!bare && includeSamples && <p class="preview-notice">Design preview · Sample reviews and scores</p>}
       <slot />
     </main>
     {!bare && (
@@ -70,5 +105,31 @@ const youtube = "https://www.youtube.com/@cinekutss";
         </footer>
       </>
     )}
+
+    <script>
+      const menu = document.querySelector<HTMLDialogElement>('[data-site-menu]');
+      const openButton = document.querySelector<HTMLButtonElement>('[data-menu-open]');
+      const closeButton = document.querySelector<HTMLButtonElement>('[data-menu-close]');
+
+      const closeMenu = () => {
+        if (!menu?.open) return;
+        menu.close();
+      };
+
+      openButton?.addEventListener('click', () => {
+        if (!menu) return;
+        menu.showModal();
+        document.body.classList.add('menu-open');
+        openButton.setAttribute('aria-expanded', 'true');
+      });
+
+      closeButton?.addEventListener('click', closeMenu);
+      menu?.querySelectorAll<HTMLAnchorElement>('a').forEach((link) => link.addEventListener('click', closeMenu));
+      menu?.addEventListener('close', () => {
+        document.body.classList.remove('menu-open');
+        openButton?.setAttribute('aria-expanded', 'false');
+        openButton?.focus();
+      });
+    </script>
   </body>
 </html>

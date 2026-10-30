@@ -47,7 +47,6 @@ const picks = await Promise.all(data.items.map(async (item, index) => {
   };
 }));
 ---
-import { visibleTitles, visibleLists } from '../../lib/content';
 <Base title={data.title} description={data.tagline ?? data.title}>
   <article class="collection-page">
     <p class="review-kicker">

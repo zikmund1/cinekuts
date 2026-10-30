@@ -1,0 +1,230 @@
+---
+interface Props {
+  latest?: {
+    slug: string;
+    data: { title: string };
+  };
+  recommendations?: {
+    href: string;
+    title: string;
+    poster: string;
+    meta: string;
+    score?: string;
+  }[];
+}
+
+const { latest, recommendations = [] } = Astro.props;
+const hasCatalog = recommendations.length > 0;
+
+const prompts = [
+  { emoji: "⏱️", label: "Something tense under two hours" },
+  { emoji: "🚀", label: "A smart sci-fi film for tonight" },
+  { emoji: "🖤", label: "Dark, funny and a little strange" },
+  { emoji: "🛋️", label: "A comforting rewatch" },
+  { emoji: "💎", label: "An overlooked hidden gem" },
+  { emoji: "📺", label: "A gripping weekend series" },
+  { emoji: "🥀", label: "Beautiful but emotionally brutal" },
+  { emoji: "🍿", label: "Something the whole family can watch" },
+];
+---
+
+<section class="recommendation-hero" aria-labelledby="recommendation-heading">
+  <div class="recommendation-intro">
+    <h1 id="recommendation-heading">
+      <span class="recommendation-question-primary">What are you in</span><br />
+      <span class="recommendation-question-secondary">the mood for?</span>
+    </h1>
+  </div>
+
+  <div class="recommendation-chat" aria-label="CINEKUTS recommendation chat">
+    <p class="chat-demo-note" id="chat-demo-note">
+      {hasCatalog
+        ? 'Interactive demo — try the flow. Example titles are not matched to your request yet.'
+        : 'Recommendations are coming soon. We’re preparing the first titles for you.'}
+      {!hasCatalog && <a href="https://www.youtube.com/@cinekutss" target="_blank" rel="noreferrer">Watch CINEKUTS on YouTube ↗</a>}
+    </p>
+    <form class="chat-composer" data-chat-form>
+      <label class="sr-only" for="recommendation-input">Describe what you want to watch</label>
+      <textarea
+        id="recommendation-input"
+        rows="4"
+        maxlength="300"
+        disabled={!hasCatalog}
+        aria-describedby="chat-demo-note"
+        placeholder="Try: I want something hopeful, clever and under two hours…"
+        data-chat-input
+      ></textarea>
+      <button class="chat-send" type="submit" disabled data-chat-send>
+        {hasCatalog ? 'Try demo' : 'Coming soon'}
+        <span aria-hidden="true">↗</span>
+      </button>
+    </form>
+    <noscript><p class="chat-demo-note">Enable JavaScript to try the demo. Reviews and collections are available from the navigation.</p></noscript>
+
+    <div class="chat-meta">
+      <span>No sign-up required</span>
+      <span>Up to three example titles</span>
+      <span>Spoiler-free by default</span>
+    </div>
+
+    <div class="chat-status" role="status" aria-live="polite" data-chat-status></div>
+
+    <section class="chat-results" aria-labelledby="chat-results-title" tabindex="-1" data-chat-results hidden>
+      <div class="chat-results-head">
+        <div>
+          <p class="chat-results-label">Demo results</p>
+          <h2 id="chat-results-title">Example titles</h2>
+        </div>
+        <button class="chat-reset" type="button" data-chat-reset>Start over</button>
+      </div>
+      <p class="chat-result-reason">These cards demonstrate the layout. Mood, genre, runtime and family suitability have not been checked.</p>
+
+      <div class="chat-result-grid">
+        {recommendations.map((item) => (
+          <article class="chat-result-card" data-chat-result-card hidden>
+            <a href={item.href} class="chat-result-poster" aria-label={`Open ${item.title}`}>
+              <img src={item.poster} alt="" loading="lazy" />
+            </a>
+            <div class="chat-result-copy">
+              <div class="chat-result-title-row">
+                <div>
+                  <p class="chat-result-meta">{item.meta}</p>
+                  <h3><a href={item.href}>{item.title}</a></h3>
+                </div>
+                {item.score && <span class="chat-result-score" aria-label={`CINEKUTS score ${item.score}`}>{item.score}</span>}
+              </div>
+              <a class="chat-result-link" href={item.href}>View title <span aria-hidden="true">↗</span></a>
+            </div>
+          </article>
+        ))}
+      </div>
+
+      <button class="chat-another" type="button" data-chat-another hidden={recommendations.length <= 3}>Show more examples</button>
+    </section>
+  </div>
+
+  {hasCatalog && <div class="chat-prompt-row" id="chat-prompt-row" aria-label="Example prompts">
+    {prompts.map(({ emoji, label }) => (
+      <button class="chat-prompt" type="button" data-chat-prompt={label}>
+        <span class="chat-prompt-icon" aria-hidden="true">{emoji}</span>
+        <span>{label}</span>
+      </button>
+    ))}
+  </div>}
+
+  {latest && (
+    <a class="recommendation-latest" href={`/title/${latest.slug}`}>
+      Latest review <span>{latest.data.title}</span> ›
+    </a>
+  )}
+</section>
+
+<script>
+  const form = document.querySelector<HTMLFormElement>('[data-chat-form]');
+  const input = document.querySelector<HTMLTextAreaElement>('[data-chat-input]');
+  const sendButton = document.querySelector<HTMLButtonElement>('[data-chat-send]');
+  const status = document.querySelector<HTMLElement>('[data-chat-status]');
+  const results = document.querySelector<HTMLElement>('[data-chat-results]');
+  const resultCards = Array.from(document.querySelectorAll<HTMLElement>('[data-chat-result-card]'));
+  const anotherButton = document.querySelector<HTMLButtonElement>('[data-chat-another]');
+  const resetButton = document.querySelector<HTMLButtonElement>('[data-chat-reset]');
+  let loading = false;
+  let resultOffset = 0;
+  let loadingTimer: number | undefined;
+
+  const setSendState = () => {
+    if (!input || !sendButton) return;
+    sendButton.disabled = loading || resultCards.length === 0 || input.value.trim().length === 0;
+  };
+
+  const showRecommendations = () => {
+    if (!results || !status) return;
+    status.textContent = '';
+
+    if (resultCards.length === 0) {
+      status.textContent = 'The local preview catalog is empty. Try again when titles are available.';
+      return;
+    }
+
+    resultCards.forEach((card) => { card.hidden = true; });
+    const count = Math.min(3, resultCards.length);
+    const start = (resultOffset * count) % resultCards.length;
+
+    for (let index = 0; index < count; index += 1) {
+      const card = resultCards[(start + index) % resultCards.length];
+      card.style.order = String(index);
+      card.hidden = false;
+    }
+
+    results.hidden = false;
+    results.focus({ preventScroll: true });
+    results.scrollIntoView({
+      behavior: window.matchMedia('(prefers-reduced-motion: reduce)').matches ? 'auto' : 'smooth',
+      block: 'nearest',
+    });
+  };
+
+  const submitQuery = () => {
+    if (!input || !sendButton || !status || loading || resultCards.length === 0) return;
+    const query = input.value.trim().slice(0, 300);
+    if (!query) return;
+
+    window.clearTimeout(loadingTimer);
+    loading = true;
+    resultOffset = 0;
+    if (results) results.hidden = true;
+    status.textContent = 'Preparing example cards…';
+    form?.setAttribute('aria-busy', 'true');
+    input.disabled = true;
+    sendButton.disabled = true;
+
+    const delay = window.matchMedia('(prefers-reduced-motion: reduce)').matches ? 0 : 650;
+    loadingTimer = window.setTimeout(() => {
+      loading = false;
+      form?.setAttribute('aria-busy', 'false');
+      input.disabled = false;
+      setSendState();
+      showRecommendations();
+    }, delay);
+  };
+
+  document.querySelectorAll<HTMLButtonElement>('[data-chat-prompt]').forEach((button) => {
+    button.addEventListener('click', () => {
+      if (!input || loading || resultCards.length === 0) return;
+      input.value = button.dataset.chatPrompt ?? '';
+      setSendState();
+      input.focus();
+    });
+  });
+
+  input?.addEventListener('input', setSendState);
+  input?.addEventListener('keydown', (event) => {
+    if (event.key === 'Enter' && !event.shiftKey && !event.isComposing) {
+      event.preventDefault();
+      form?.requestSubmit();
+    }
+  });
+
+  form?.addEventListener('submit', (event) => {
+    event.preventDefault();
+    submitQuery();
+  });
+
+  anotherButton?.addEventListener('click', () => {
+    resultOffset += 1;
+    showRecommendations();
+  });
+
+  resetButton?.addEventListener('click', () => {
+    window.clearTimeout(loadingTimer);
+    loading = false;
+    form?.setAttribute('aria-busy', 'false');
+    if (results) results.hidden = true;
+    if (status) status.textContent = '';
+    if (!input) return;
+    input.disabled = false;
+    input.value = '';
+    setSendState();
+    input.focus();
+  });
+</script>

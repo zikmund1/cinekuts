@@ -1,10 +1,7 @@
 ---
 interface Tile {
-  href: string;
   title: string;
   image: string;
-  score?: string;
-  video?: string;
 }
 
 interface Props {
@@ -20,51 +17,38 @@ function fill(source: Tile[], min: number) {
   return row.slice(0, min);
 }
 
+function hash(value: string) {
+  return [...value].reduce((total, character) => ((total * 31) + character.charCodeAt(0)) >>> 0, 7);
+}
+
+function mix(source: Tile[], salt: string) {
+  return [...source].sort((a, b) => hash(`${salt}:${a.title}`) - hash(`${salt}:${b.title}`));
+}
+
 const perRow = Math.max(10, tiles.length);
 const rows = [
-  { className: "media-wall-row media-wall-row-a", items: fill(tiles, perRow) },
-  { className: "media-wall-row media-wall-row-b", items: fill([...tiles].reverse(), perRow) },
+  { className: "media-wall-row media-wall-row-a", items: fill(mix(tiles, "a"), perRow) },
+  { className: "media-wall-row media-wall-row-b", items: fill(mix(tiles, "b"), perRow) },
 ];
 ---
 
 {tiles.length > 0 && (
-  <section class="media-wall" aria-label="Titles on Cinekuts">
+  <div class="media-wall" aria-hidden="true">
     <div class="media-wall-track">
       {rows.map((row) => (
         <div class={row.className}>
           {[...row.items, ...row.items].map((tile, i) => (
-            <a class="screen" href={tile.href}>
-              {tile.video ? (
-                <video
-                  class="screen-media"
-                  poster={tile.image}
-                  src={tile.video}
-                  muted
-                  loop
-                  autoplay
-                  playsinline
-                  preload="metadata"
-                />
-              ) : (
-                <img
-                  class="screen-media"
-                  src={tile.image}
-                  alt=""
-                  loading={i < 6 ? "eager" : "lazy"}
-                />
-              )}
-              <span class="screen-caption">
-                <span class="screen-caption-title">{tile.title}</span>
-                {tile.score ? (
-                  <span class="screen-caption-score">{tile.score}</span>
-                ) : (
-                  <span class="screen-caption-soon">Coming soon</span>
-                )}
-              </span>
-            </a>
+            <div class="screen">
+              <img
+                class="screen-media"
+                src={tile.image}
+                alt=""
+                loading={i < 6 ? "eager" : "lazy"}
+              />
+            </div>
           ))}
         </div>
       ))}
     </div>
-  </section>
+  </div>
 )}

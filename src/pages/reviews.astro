@@ -25,7 +25,6 @@ const items = titles.map((t) => ({
   date: String(t.data.publishDate?.getTime() ?? 0),
 }));
 ---
-import { visibleTitles, visibleLists } from '../lib/content';
 <Base title="Reviews" description="Every Cinekuts review, with search and filters.">
   <section class="reviews-page">
     <h1 class="two-tone">
@@ -144,7 +143,9 @@ import { visibleTitles, visibleLists } from '../lib/content';
 
     const setPill = (group: string, value: string) => {
       form.querySelectorAll(`[data-filter="${group}"]`).forEach((btn) => {
-        btn.classList.toggle('is-on', btn instanceof HTMLElement && btn.dataset.value === value);
+        const selected = btn instanceof HTMLElement && btn.dataset.value === value;
+        btn.classList.toggle('is-on', selected);
+        btn.setAttribute('aria-pressed', String(selected));
       });
     };
 

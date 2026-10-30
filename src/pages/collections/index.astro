@@ -22,7 +22,6 @@ const cards = await Promise.all(lists.map(async (list) => {
   return { list, posters };
 }));
 ---
-import { visibleTitles, visibleLists } from '../../lib/content';
 <Base title="Collections" description="YouTube list videos, written down — ordered picks, posters, and scores.">
   <section class="section collection-index">
     <h1 class="two-tone">
